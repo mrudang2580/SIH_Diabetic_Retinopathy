@@ -270,6 +270,29 @@ function IntakeFormInner() {
       } catch (parseErr) {
         console.error('Error parsing inference response JSON:', parseErr);
       }
+      const BACKEND_URL = 'https://duly-manlike-buckle.ngrok-free.dev';
+
+      if (aiResult?.images) {
+        aiResult.images.originalUrl =
+          aiResult.images.originalUrl?.startsWith('/scans/')
+            ? `${BACKEND_URL}${aiResult.images.originalUrl}`
+            : aiResult.images.originalUrl;
+
+        aiResult.images.enhancedUrl =
+          aiResult.images.enhancedUrl?.startsWith('/scans/')
+            ? `${BACKEND_URL}${aiResult.images.enhancedUrl}`
+            : aiResult.images.enhancedUrl;
+
+        aiResult.images.heatmapUrl =
+          aiResult.images.heatmapUrl?.startsWith('/scans/')
+            ? `${BACKEND_URL}${aiResult.images.heatmapUrl}`
+            : aiResult.images.heatmapUrl;
+
+        aiResult.images.lesionMaskUrl =
+          aiResult.images.lesionMaskUrl?.startsWith('/scans/')
+            ? `${BACKEND_URL}${aiResult.images.lesionMaskUrl}`
+            : aiResult.images.lesionMaskUrl;
+      }
 
       if (!res.ok && (!aiResult || aiResult.isFundus !== false)) {
         throw new Error(aiResult?.error || 'AI image screening failed');
