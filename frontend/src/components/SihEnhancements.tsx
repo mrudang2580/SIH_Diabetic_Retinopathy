@@ -42,17 +42,12 @@ const resolveRetinalImageUrl = (
   url: string | null | undefined,
   fallback: string
 ): string => {
-  if (!url) {
-    return fallback;
-  }
+  if (!url) return fallback;
 
   const trimmed = url.trim();
+  if (!trimmed) return fallback;
 
-  if (!trimmed) {
-    return fallback;
-  }
-
-  // data/blob URLs can be used directly.
+  // Already a data/blob URL.
   if (
     trimmed.startsWith('data:') ||
     trimmed.startsWith('blob:')
@@ -60,74 +55,27 @@ const resolveRetinalImageUrl = (
     return trimmed;
   }
 
-  /*
-   * IMPORTANT:
-   * Backend images are deliberately converted to a SAME-ORIGIN
-   * Next.js URL.
-   *
-   * Instead of:
-   * https://duly-manlike-buckle.ngrok-free.dev/scans/file.png
-   *
-   * the browser receives:
-   * /api/scan-image/file.png
-   */
+  // Any backend scan path must use the backend origin, not Vercel.
   if (trimmed.startsWith('/scans/')) {
-    const filename = trimmed
-      .replace(/^\/scans\//, '')
-      .replace(/^\/+/, '');
-
-    return `/api/scan-image/${filename}`;
+    return `${BACKEND_URL}${trimmed}`;
   }
 
   if (trimmed.startsWith('scans/')) {
-    const filename = trimmed
-      .replace(/^scans\//, '')
-      .replace(/^\/+/, '');
-
-    return `/api/scan-image/${filename}`;
+    return `${BACKEND_URL}/${trimmed}`;
   }
 
-  /*
-   * If page.tsx has already converted the URL into the full
-   * ngrok URL, convert it BACK into our local proxy URL.
-   */
-  if (trimmed.startsWith(`${BACKEND_URL}/scans/`)) {
-    const filename = trimmed
-      .replace(`${BACKEND_URL}/scans/`, '')
-      .replace(/^\/+/, '');
-
-    return `/api/scan-image/${filename}`;
-  }
-
-  /*
-   * Handle any other absolute backend scan URL.
-   */
+  // Absolute URLs are left untouched.
   if (/^https?:\/\//i.test(trimmed)) {
-    try {
-      const parsed = new URL(trimmed);
-
-      if (parsed.pathname.startsWith('/scans/')) {
-        const filename = parsed.pathname
-          .replace(/^\/scans\//, '')
-          .replace(/^\/+/, '');
-
-        return `/api/scan-image/${filename}`;
-      }
-    } catch {
-      // Fall through and use the original URL.
-    }
-
     return trimmed;
   }
 
-  /*
-   * Plain filename.
-   */
-  if (!trimmed.startsWith('/')) {
-    return `/api/scan-image/${trimmed.replace(/^\/+/, '')}`;
+  // Other root-relative paths are kept as frontend paths.
+  if (trimmed.startsWith('/')) {
+    return trimmed;
   }
 
-  return trimmed;
+  // Treat an unqualified scan filename/path as a backend scan path.
+  return `${BACKEND_URL}/scans/${trimmed.replace(/^\/+/, '')}`;
 };
 
 interface RetinalImageProps {
