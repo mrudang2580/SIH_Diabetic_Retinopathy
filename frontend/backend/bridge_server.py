@@ -28,31 +28,19 @@ from pipeline.fundus_validator import validate_fundus_image
 
 app = FastAPI(title="RetinX MATLAB & Python Inference Bridge")
 
-@app.middleware("http")
-async def force_cors(request: Request, call_next):
-    response = await call_next(request)
-
-    origin = request.headers.get("origin")
-
-    if origin == "https://sih-diabetic-retinopathy-eosin.vercel.app":
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Credentials"] = "true"
-        response.headers["Access-Control-Allow-Methods"] = "*"
-        response.headers["Access-Control-Allow-Headers"] = "*"
-
-    return response
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Define directories
 FRONTEND_PUBLIC_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "public", "scans"))
 FRONTEND_SAMPLES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "public", "samples"))
 BACKEND_SAMPLES_DIR = os.path.join(BACKEND_DIR, "samples")
 DATA_SAMPLES_DIR = os.path.abspath(os.path.join(BACKEND_DIR, "..", "data", "samples"))
-
-app.mount(
-    "/scans",
-    StaticFiles(directory=FRONTEND_PUBLIC_DIR),
-    name="scans"
-)
 
 os.makedirs(FRONTEND_PUBLIC_DIR, exist_ok=True)
 os.makedirs(FRONTEND_SAMPLES_DIR, exist_ok=True)
@@ -98,17 +86,12 @@ except Exception as e:
 def move_to_public(filepath):
     """Moves temp images into the Next.js public folder and returns a web URL."""
     if filepath and os.path.exists(filepath):
-
         filename = os.path.basename(filepath)
-
         dest_path = os.path.join(FRONTEND_PUBLIC_DIR, filename)
-
         if filepath != dest_path:
             shutil.copyfile(filepath, dest_path)
-
         return f"https://duly-manlike-buckle.ngrok-free.dev/scans/{filename}"
 
-    return None
 def generate_confidence_map(mask_path):
     """
     Transforms a flat grayscale U-Net probability mask into a 
