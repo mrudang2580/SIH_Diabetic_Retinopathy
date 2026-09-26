@@ -45,12 +45,6 @@ DATA_SAMPLES_DIR = os.path.abspath(os.path.join(BACKEND_DIR, "..", "data", "samp
 os.makedirs(FRONTEND_PUBLIC_DIR, exist_ok=True)
 os.makedirs(FRONTEND_SAMPLES_DIR, exist_ok=True)
 
-app.mount(
-    "/scans",
-    StaticFiles(directory=FRONTEND_PUBLIC_DIR),
-    name="scans"
-)
-
 # Synchronize sample files into public samples folder if needed
 for s_dir in [BACKEND_SAMPLES_DIR, DATA_SAMPLES_DIR]:
     if os.path.exists(s_dir):
@@ -90,7 +84,8 @@ def move_to_public(filepath):
         dest_path = os.path.join(FRONTEND_PUBLIC_DIR, filename)
         if filepath != dest_path:
             shutil.copyfile(filepath, dest_path)
-        return f"https://duly-manlike-buckle.ngrok-free.dev/scans/{filename}"
+        return f"/scans/{filename}"
+    return None
 
 def generate_confidence_map(mask_path):
     """
@@ -238,17 +233,7 @@ def serve_sample(filename: str):
         if os.path.exists(candidate):
             return FileResponse(candidate)
     raise HTTPException(status_code=404, detail="Sample not found")
-@app.get("/scans/{filename}")
-def serve_scan(filename: str):
-    candidate = os.path.join(FRONTEND_PUBLIC_DIR, filename)
 
-    if os.path.exists(candidate):
-        return FileResponse(candidate)
-
-    raise HTTPException(
-        status_code=404,
-        detail=f"Scan not found: {filename}"
-    )
 @app.post("/infer")
 async def run_inference(
     request: Request,
